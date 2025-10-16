@@ -54,7 +54,6 @@ class LoginViewModel @Inject constructor(
 
         updateIdleState { it.copy(isLoading = true, errorMessage = null) }
 
-
         viewModelScope.launch {
             try {
                 val userData = repository.login(
@@ -63,10 +62,13 @@ class LoginViewModel @Inject constructor(
                 )
                 uiState = LoginUIState.Success(userData.user)
             } catch (e: Exception) {
-                uiState = (uiState as? LoginUIState.Idle)?.copy(
-                    isLoading = false,
-                    errorMessage = e.message
-                ) ?: uiState
+                updateIdleState {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = e.message
+                    )
+                }
+
             }
         }
     }
