@@ -3,7 +3,7 @@ package com.lucilab.surveynext.presentation.navigation
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavOptionsBuilder
 import androidx.navigation.compose.*
-import com.lucilab.surveynext.presentation.screens.auth.RegisterScreen
+import com.lucilab.surveynext.presentation.screens.auth.register.RegisterScreen
 import com.lucilab.surveynext.presentation.screens.auth.login.LoginScreen
 import com.lucilab.surveynext.presentation.screens.home.HomeScreen
 

@@ -8,5 +8,9 @@ data class UserModel(
     val role: String,
     val points: Int,
     @SerializedName("pending_points")
-    val pendingPoints: Int // Use camelCase in Kotlin
+    val pendingPoints: Int,
+    @SerializedName("country_id")
+    val countryId: Int,
+    @SerializedName("region_id")
+    val regionId: Int,
 )

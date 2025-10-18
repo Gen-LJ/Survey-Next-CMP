@@ -1,4 +1,4 @@
-package com.lucilab.surveynext.presentation.screens.auth
+package com.lucilab.surveynext.presentation.screens.auth.register
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
