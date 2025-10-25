@@ -1,6 +1,5 @@
 package com.lucilab.surveynext.presentation.screens.auth.register
 
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -9,7 +8,6 @@ import androidx.lifecycle.viewModelScope
 import com.lucilab.surveynext.data.model.CountryModel
 import com.lucilab.surveynext.data.model.UserModel
 import com.lucilab.surveynext.data.repository.AuthRepository
-import com.lucilab.surveynext.data.repository.AuthRepositoryImpl
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,45 +23,42 @@ data class RegisterFormState(
     val emailError: String? = null,
     val passwordError: String? = null,
     val confirmPasswordError: String? = null,
-    val snackErrors: String? = null,
 )
 
-sealed class RegisterUIState {
-    class Initial : RegisterUIState()
+sealed class RegisterState {
+    class Initial : RegisterState()
 
     data class Idle(
         val data: List<CountryModel>,
         val form: RegisterFormState = RegisterFormState(),
         val isLoading: Boolean = false,
         val errorMessage: String? = null,
-    ) : RegisterUIState()
+    ) : RegisterState()
 
     data class Error(
         val errorMessage: String? = null
-    ) : RegisterUIState()
+    ) : RegisterState()
 
     data class Success(
         val data: UserModel
-    ) : RegisterUIState()
+    ) : RegisterState()
 }
 
 @HiltViewModel
 class RegisterViewModel @Inject constructor(
     private val repository: AuthRepository
 ) : ViewModel() {
-    var uiState by mutableStateOf<RegisterUIState>(RegisterUIState.Initial())
+    var state by mutableStateOf<RegisterState>(RegisterState.Initial())
         private set
 
     init {
-        Log.d("DependencyInjection", "ViewModel created with repository hash: ${repository.hashCode()}")
-        Log.d("DependencyInjection", "Repository type: ${repository::class.java.simpleName}")
-
-        // If you can access the RestClient from repository, log it too
-        if (repository is AuthRepositoryImpl) {
-            // You might need to make service public or add a debug method
-            Log.d("DependencyInjection", "RestClient hash in repo: ${repository.getServiceHash()}")
+        viewModelScope.launch {
+            loadData()
         }
+    }
 
+    fun reload() {
+        resetToInitial()
         viewModelScope.launch {
             loadData()
         }
@@ -73,9 +68,9 @@ class RegisterViewModel @Inject constructor(
         runCatching {
             repository.getRegisterForm()
         }.onSuccess {
-            uiState = RegisterUIState.Idle(data = it)
+            state = RegisterState.Idle(data = it)
         }.onFailure {
-            uiState = RegisterUIState.Error(errorMessage = it.message)
+            state = RegisterState.Error(errorMessage = it.message)
         }
     }
 
@@ -83,21 +78,34 @@ class RegisterViewModel @Inject constructor(
         updateForm { it.copy(name = name, nameError = null) }
     }
 
+    fun onEmailChanged(email: String) {
+        updateForm { it.copy(email = email, emailError = null) }
+    }
+
+    fun onPasswordChanged(password: String) {
+        updateForm { it.copy(password = password, passwordError = null) }
+    }
+
+    fun onConfirmPasswordChanged(confirmPassword: String) {
+        updateForm { it.copy(confirmPassword = confirmPassword, confirmPasswordError = null) }
+    }
+
     fun clearError() {
-        uiState = (uiState as? RegisterUIState.Idle)?.copy(errorMessage = null) ?: uiState
+        state = (state as? RegisterState.Idle)?.copy(errorMessage = null) ?: state
     }
 
     fun resetToInitial() {
-        uiState = RegisterUIState.Initial()
+        state = RegisterState.Initial()
+
     }
 
     private inline fun updateForm(update: (RegisterFormState) -> RegisterFormState) {
-        uiState = (uiState as? RegisterUIState.Idle)?.let { idle ->
+        state = (state as? RegisterState.Idle)?.let { idle ->
             idle.copy(form = update(idle.form))
-        } ?: uiState
+        } ?: state
     }
 
-    private inline fun updateIdleState(update: (RegisterUIState.Idle) -> RegisterUIState.Idle) {
-        uiState = (uiState as? RegisterUIState.Idle)?.let(update) ?: uiState
+    private inline fun updateIdleState(update: (RegisterState.Idle) -> RegisterState.Idle) {
+        state = (state as? RegisterState.Idle)?.let(update) ?: state
     }
 }

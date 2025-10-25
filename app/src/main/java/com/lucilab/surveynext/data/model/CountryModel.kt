@@ -4,6 +4,6 @@ data class CountryModel (
     val id: UInt,
     val name: String,
     val code: String,
-    val regions: RegionModel
+    val regions: List<RegionModel>
 )
 

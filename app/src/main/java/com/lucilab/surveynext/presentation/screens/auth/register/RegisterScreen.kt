@@ -1,16 +1,10 @@
 package com.lucilab.surveynext.presentation.screens.auth.register
 
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.lucilab.surveynext.presentation.components.button.custombutton.CustomButton
+import com.lucilab.surveynext.presentation.screens.auth.register.view.RegisterIdleView
+import com.lucilab.surveynext.presentation.screens.error.ErrorView
+import com.lucilab.surveynext.presentation.screens.loading.LoadingView
 
 @Composable
 fun RegisterScreen(
@@ -18,55 +12,27 @@ fun RegisterScreen(
     onLoginClick: () -> Unit,
     viewModel: RegisterViewModel = hiltViewModel()
 ) {
-    val uiState = viewModel.uiState
-    val idleState = uiState as? RegisterUIState.Idle
-    val snackBarHostState = remember { SnackbarHostState() }
+    val state = viewModel.state
 
-    Scaffold(
-        snackbarHost = {
-            SnackbarHost(hostState = snackBarHostState)
-        }) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(innerPadding)
-                .padding(WindowInsets.ime.asPaddingValues())
-                .padding(24.dp)
-        ) {
-            Text(
-                "Register",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.W500
-                )
-            )
+    when (state) {
+        is RegisterState.Initial -> LoadingView(loadingInfo = "Retrieving Register Form...")
+        is RegisterState.Idle -> RegisterIdleView(
+            formState = state.form,
+            countries = state.data,
+            isLoading = state.isLoading,
+            onNameChanged = viewModel::onNameChanged,
+            onEmailChanged = viewModel::onEmailChanged,
+            onPasswordChanged = viewModel::onPasswordChanged,
+            onConfirmPasswordChanged = viewModel::onConfirmPasswordChanged,
+            onLoginClick = onLoginClick
+        )
 
-            Spacer(Modifier.height(16.dp))
+        is RegisterState.Error -> ErrorView(
+            message = state.errorMessage ?: "Something went wrong.",
+            onRetry = viewModel::reload
+        )
 
-            OutlinedTextField(
-                value = idleState?.form?.name.orEmpty(),
-                modifier = Modifier.fillMaxWidth(),
-                onValueChange = viewModel::onNameChanged,
-                label = { Text("Name") },
-                isError = idleState?.form?.nameError != null,
-                supportingText = idleState?.form?.nameError?.let { { Text(it) } }
-            )
-
-
-            Spacer(Modifier.height(16.dp))
-            CustomButton(
-                text = "Register",
-                onClick = {},
-                modifier = Modifier.fillMaxWidth(),
-                isLoading = false
-            )
-
-
-            Spacer(Modifier.height(8.dp))
-            TextButton(onClick = onLoginClick) {
-                Text("Already have an account? Login")
-            }
-        }
+        is RegisterState.Success -> onRegister()
     }
 }
 
