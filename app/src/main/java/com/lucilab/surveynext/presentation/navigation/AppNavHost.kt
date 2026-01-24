@@ -29,7 +29,7 @@ fun AppNavHost() {
 
         composable(Screen.Register.route) {
             RegisterScreen(
-                onRegister = { navController.navigate(Screen.Home.route) },
+                onRegisterSuccess = { navController.navigate(Screen.Home.route) },
                 onLoginClick = {
                     navController.navigate(Screen.Login.route) {
                         clearBackStack()

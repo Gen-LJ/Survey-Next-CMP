@@ -1,4 +1,4 @@
-package com.lucilab.surveynext.presentation.screens.auth.login
+package com.lucilab.surveynext.presentation.screens.auth.login.viewmodel
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
