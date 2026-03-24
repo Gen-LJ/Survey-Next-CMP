@@ -148,8 +148,8 @@ class RegisterViewModel @Inject constructor(
                     email = email,
                     password = password,
                     role = "interviewer",
-                    regionId = countryId,
-                    countryId = regionId,
+                    regionId = regionId,
+                    countryId = countryId,
                 )
             }.onSuccess { user ->
                 state = RegisterState.Success(data = user)
