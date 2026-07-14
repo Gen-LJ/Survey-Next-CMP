@@ -1,6 +1,4 @@
 package com.lucilab.surveynext.di
-
-import com.lucilab.surveynext.data.service.datasource.RestClient
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
