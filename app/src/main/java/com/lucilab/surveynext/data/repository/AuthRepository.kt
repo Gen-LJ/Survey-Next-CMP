@@ -4,11 +4,14 @@ import android.util.Log
 import com.lucilab.surveynext.data.model.CountryModel
 import com.lucilab.surveynext.data.model.LoginDataModel
 import com.lucilab.surveynext.data.model.UserModel
+import com.lucilab.surveynext.data.model.requireData
 import com.lucilab.surveynext.data.service.datasource.RestClient
+import com.lucilab.surveynext.data.session.SessionManager
 import javax.inject.Inject
 import javax.inject.Singleton
 
 interface AuthRepository {
+    /** Signs in and persists the session. */
     suspend fun login(email: String, password: String): LoginDataModel
 
     suspend fun register(
@@ -16,23 +19,29 @@ interface AuthRepository {
     ): UserModel
 
     suspend fun getRegisterForm(): List<CountryModel>
+
+    /** Re-reads the signed-in user, keeping points in the session current. */
+    suspend fun refreshUser(): UserModel
+
+    /** "Region, Country" for the ids, or null when the lookup fails. */
+    suspend fun locationName(countryId: Int, regionId: Int): String?
+
+    fun logout()
 }
 
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
-    private val service: RestClient
+    private val service: RestClient,
+    private val sessionManager: SessionManager,
 ) : AuthRepository {
 
     //In-memory cache
     private var cachedCountries: List<CountryModel>? = null
 
     override suspend fun login(email: String, password: String): LoginDataModel {
-        val response = service.login(email, password)
-        if (response.success) {
-            return response.data!!
-        } else {
-            throw Exception(response.message ?: "Login failed")
-        }
+        val data = service.login(email, password).requireData("Login failed")
+        sessionManager.save(data.token, data.user)
+        return data
     }
 
     override suspend fun register(
@@ -43,30 +52,34 @@ class AuthRepositoryImpl @Inject constructor(
         countryId: UInt,
         regionId: UInt
     ): UserModel {
-        val response = service.register(name, email, password, role, countryId, regionId)
-        if (response.success) {
-            return response.data!!
-        } else {
-            throw Exception(response.message ?: "Register Failed")
-        }
+        return service.register(name, email, password, role, countryId, regionId)
+            .requireData("Register Failed")
     }
 
     override suspend fun getRegisterForm(): List<CountryModel> {
-        try {
-            cachedCountries?.let {
-                Log.d("Cache", "Returning Cache Data")
-                return it
-            }
-            val response = service.getRegisterForm()
-            if (response.success) {
-                Log.d("Cache", "Saving in memory cache from API data")
-                cachedCountries = response.data!!
-                return cachedCountries!!
-            } else {
-                throw Exception(response.message ?: "Retrieve Register Form Failed")
-            }
-        } catch (e: Exception) {
-            throw Exception(e.message ?: "Retrieve Register Form Failed")
+        cachedCountries?.let {
+            Log.d("Cache", "Returning Cache Data")
+            return it
         }
+        val countries = service.getRegisterForm().requireData("Retrieve Register Form Failed")
+        Log.d("Cache", "Saving in memory cache from API data")
+        cachedCountries = countries
+        return countries
+    }
+
+    override suspend fun refreshUser(): UserModel {
+        val user = service.me().requireData("Couldn't load your account")
+        sessionManager.updateUser(user)
+        return user
+    }
+
+    override suspend fun locationName(countryId: Int, regionId: Int): String? = runCatching {
+        val country = getRegisterForm().firstOrNull { it.id.toInt() == countryId } ?: return null
+        val region = country.regions.orEmpty().firstOrNull { it.id.toInt() == regionId }
+        listOfNotNull(region?.name, country.name).joinToString(", ")
+    }.getOrNull()
+
+    override fun logout() {
+        sessionManager.clear()
     }
 }

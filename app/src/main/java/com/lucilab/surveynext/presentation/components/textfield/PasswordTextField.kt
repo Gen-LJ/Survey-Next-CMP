@@ -18,7 +18,8 @@ fun PasswordTextField(
     password: String,
     onPasswordChange: (String) -> Unit,
     isError: Boolean = false,
-    supportingText: @Composable (() -> Unit)? = null
+    supportingText: @Composable (() -> Unit)? = null,
+    label: String = "Password",
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -27,7 +28,7 @@ fun PasswordTextField(
         isError = isError,
         value = password,
         onValueChange = onPasswordChange,
-        label = { Text("Password") },
+        label = { Text(label) },
         modifier = Modifier.fillMaxWidth(),
         visualTransformation = if (passwordVisible) VisualTransformation.None
         else PasswordVisualTransformation(),

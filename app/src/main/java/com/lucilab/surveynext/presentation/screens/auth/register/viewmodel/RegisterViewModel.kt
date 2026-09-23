@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lucilab.surveynext.data.model.CountryModel
 import com.lucilab.surveynext.data.model.RegionModel
+import com.lucilab.surveynext.data.model.Role
 import com.lucilab.surveynext.data.model.UserModel
 import com.lucilab.surveynext.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,6 +15,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class RegisterFormState(
+    val role: Role = Role.Respondent,
     val name: String? = null,
     val email: String? = null,
     val selectedCountry: CountryModel? = null,
@@ -80,6 +82,10 @@ class RegisterViewModel @Inject constructor(
         }
     }
 
+    fun onRoleSelected(role: Role) {
+        updateForm { it.copy(role = role) }
+    }
+
     fun onNameChanged(name: String) {
         updateForm { it.copy(name = name, nameError = null) }
     }
@@ -100,7 +106,7 @@ class RegisterViewModel @Inject constructor(
         updateForm {
             it.copy(
                 selectedCountry = country,
-                availableRegions = country.regions,
+                availableRegions = country.regions.orEmpty(),
                 selectedRegion = null,
                 countryError = null,
             )
@@ -147,12 +153,14 @@ class RegisterViewModel @Inject constructor(
                     name = name,
                     email = email,
                     password = password,
-                    role = "interviewer",
+                    role = form.role.value,
                     regionId = regionId,
                     countryId = countryId,
                 )
-            }.onSuccess { user ->
-                state = RegisterState.Success(data = user)
+                // Registration returns no token, so sign straight in.
+                repository.login(email, password)
+            }.onSuccess { login ->
+                state = RegisterState.Success(data = login.user)
             }.onFailure { error ->
                 updateIdleState {
                     it.copy(isLoading = false, errorMessage = error.message)
